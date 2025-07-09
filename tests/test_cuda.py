@@ -23,10 +23,9 @@
 import perceval as pcvl
 import pytest
 import torch
-import numpy as np
-import merlin as ml
 import torch.nn as nn
 
+import merlin as ml
 from merlin import QuantumLayer
 
 
@@ -43,7 +42,7 @@ def test_load_model_on_cuda():
         output_size=1,
         circuit=circuit,
         input_state=[1, 1, 0, 0],
-        trainable_parameters=["phi_"],
+        trainable_parameters=["phi"],
         device=torch.device("cuda"),
     )
     assert layer.device == torch.device("cuda")
@@ -71,7 +70,7 @@ def test_switch_model_to_cuda():
         output_size=1,
         circuit=circuit,
         input_state=[1, 1, 0, 0],
-        trainable_parameters=["phi_"],
+        trainable_parameters=["phi"],
         device=torch.device("cpu"),
     )
     assert layer.device == torch.device("cpu")
@@ -115,7 +114,6 @@ class QuantumClassifier_withAnsatz(nn.Module):
             input_size=hidden_dim,
             # output_size=output_size_slos,
             output_mapping_strategy=ml.OutputMappingStrategy.NONE,
-            device = device,
         )
 
         # Build the QLayer using Merlin
@@ -142,10 +140,10 @@ class QuantumClassifier_withAnsatz(nn.Module):
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA not available")
 def test_QuantumClassifier_withAnsatz():
     """Test QuantumClassifier_withAnsatz functionality on GPU"""
-    
+
     device = torch.device("cuda")
     print(f"Testing on device: {device}")
-    
+
     # Test parameters
     batch_size = 4
     input_dim = 768
@@ -153,15 +151,15 @@ def test_QuantumClassifier_withAnsatz():
     modes = 8
     num_classes = 2
     input_state = [1, 0, 1, 0, 1, 0, 0, 0]  # 3 photons in first 3 modes
-    
-    print(f"Test configuration:")
+
+    print("Test configuration:")
     print(f"- Input dimension: {input_dim}")
     print(f"- Hidden dimension: {hidden_dim}")
     print(f"- Modes: {modes}")
     print(f"- Number of classes: {num_classes}")
     print(f"- Input state: {input_state}")
     print(f"- Batch size: {batch_size}")
-    
+
     # Create the quantum classifier
     print("\nCreating QuantumClassifier_withAnsatz...")
     model = QuantumClassifier_withAnsatz(
@@ -172,16 +170,16 @@ def test_QuantumClassifier_withAnsatz():
         input_state=input_state,
         device = device,
     )
-    
+
     # Move model to GPU
     model = model.to(device)
     print("Model successfully moved to GPU")
-    
+
     # Create sample input data
     print("\nCreating sample input data...")
     sample_input = torch.randn(batch_size, input_dim, device=device)
     print(f"Sample input shape: {sample_input.shape}")
-    
+
     # Test forward pass
     print("\nTesting forward pass...")
     model.eval()
@@ -189,7 +187,7 @@ def test_QuantumClassifier_withAnsatz():
         output = model(sample_input)
         print(f"Output shape: {output.shape}")
         print(f"Output: {output}")
-        
+
     # Test with different batch sizes
     print("\nTesting with different batch sizes...")
     for test_batch_size in [1, 2, 8]:
@@ -197,44 +195,44 @@ def test_QuantumClassifier_withAnsatz():
         with torch.no_grad():
             test_output = model(test_input)
             print(f"Batch size {test_batch_size}: Input {test_input.shape} -> Output {test_output.shape}")
-    
+
     # Test training mode
     print("\nTesting in training mode...")
     model.train()
-    
+
     # Create dummy labels
     labels = torch.randint(0, num_classes, (batch_size,), device=device)
-    
+
     # Test with gradient computation
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
     criterion = torch.nn.CrossEntropyLoss()
-    
+
     # Single training step
     optimizer.zero_grad()
     output = model(sample_input)
     loss = criterion(output, labels)
     loss.backward()
     optimizer.step()
-    
+
     print(f"Training step completed. Loss: {loss.item():.4f}")
-    
+
     # Test parameter count
     total_params = sum(p.numel() for p in model.parameters())
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    print(f"\nModel parameters:")
+    print("\nModel parameters:")
     print(f"- Total parameters: {total_params:,}")
     print(f"- Trainable parameters: {trainable_params:,}")
-    
+
     # Test memory usage
-    print(f"\nGPU memory usage:")
+    print("\nGPU memory usage:")
     print(f"- Allocated: {torch.cuda.memory_allocated(device) / 1024**2:.2f} MB")
     print(f"- Cached: {torch.cuda.memory_reserved(device) / 1024**2:.2f} MB")
-    
+
     print("\n✅ All tests passed successfully!")
-    
+
     # Assertions for pytest
     assert output.shape == torch.Size([batch_size, num_classes])
-    assert output.device == device
+    assert output.device.type == device.type
     assert total_params > 0
     assert trainable_params > 0
 
@@ -242,36 +240,37 @@ def test_QuantumClassifier_withAnsatz():
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA not available")
 def test_different_configurations():
     """Test different model configurations"""
-        
+
     device = torch.device("cuda")
     print("\nTesting different configurations...")
-    
+
     # Test configurations
     configs = [
         {"modes": 4, "hidden_dim": 50, "input_state": [1, 0, 1, 0]},
         {"modes": 6, "hidden_dim": 100, "input_state": [1, 0, 1, 0, 1, 0]},
         {"modes": 10, "hidden_dim": 150, "input_state": [1, 0, 1, 0, 1, 0, 0, 0, 0, 0]},
     ]
-    
+
     for i, config in enumerate(configs):
         print(f"\n--- Configuration {i+1} ---")
         print(f"Modes: {config['modes']}, Hidden dim: {config['hidden_dim']}")
         print(f"Input state: {config['input_state']}")
-        
+
         model = QuantumClassifier_withAnsatz(
             input_dim=768,
             hidden_dim=config['hidden_dim'],
             modes=config['modes'],
             num_classes=2,
-            input_state=config['input_state']
+            input_state=config['input_state'],
+            device=device
         ).to(device)
-        
+
         # Test with sample input
         sample_input = torch.randn(2, 768, device=device)
         with torch.no_grad():
             output = model(sample_input)
             print(f"✅ Success: Output shape {output.shape}")
-            
+
         # Assertions for pytest
         assert output.shape == torch.Size([2, 2])
-        assert output.device == device
+        assert output.device.type == device.type

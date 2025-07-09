@@ -118,9 +118,9 @@ class QuantumLayer(nn.Module):
         self.ansatz = ansatz
         self.auto_generation_mode = True
 
-        # For ansatz mode, we need to create a new computation process with index_photons
-        if self.index_photons is not None:
-            # Create a new computation process with index_photons support
+        # For ansatz mode, we need to create a new computation process with correct device
+        if self.index_photons is not None or self.device != ansatz.device:
+            # Create a new computation process with index_photons support or correct device
             self.computation_process = ComputationProcessFactory.create(
                 circuit=ansatz.circuit,
                 input_state=ansatz.input_state,
