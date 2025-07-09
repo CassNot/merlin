@@ -1,3 +1,4 @@
+from types import SimpleNamespace
 import os
 import random
 import argparse
@@ -197,6 +198,75 @@ def parse_args_unpaired_training():
     parser.add_argument("--training_images", type = float, default = 1., help="Part of the training images to be used")
     args = parser.parse_args()
     return args
+
+
+def parse_args_training():
+    """
+    Parses command-line arguments used for configuring an unpaired session (CycleGAN-Turbo).
+    This function sets up an argument parser to handle various training options.
+
+    Returns:
+    argparse.Namespace: The parsed command-line arguments.
+   """
+
+    
+    args = {}
+    # fixed random seed
+    args["seed"] = 42
+ # args for the loss function
+    args["gan_disc_type"] = "vagan_clip"
+    args["gan_loss_type"] = "multilevel_sigmoid"
+    args["lambda_gan"] = 0.5
+    args["lambda_idt"] = 1
+    args["lambda_cycle"] = 1
+    args["lambda_cycle_lpips"] = 10.0
+    args["lambda_idt_lpips"] = 1.0
+
+    # args for dataset and dataloader options
+    args["dataset_folder"] = 'img2img_turbo_annotations/dataset'
+    args["train_img_prep"] = 'resize_128'                                                                  
+    args["val_img_prep"] = 'resize_128'                                                                   
+    args["dataloader_num_workers"] = 0                                                    
+    args["train_batch_size"] = 2                                                                                                                    
+    args["max_train_epochs"] = 20                                                       
+    args["max_train_steps"] = 20                                                                                                                                                                                           
+                          
+    args["revision"] = None                                                               
+    args["variant"] = None                                                              
+    args["lora_rank_unet"] = 128                                                        
+    args["lora_rank_vae"] = 4                                                                                                                                                                                  
+    # args for validation and logging                                                                                       
+    args["viz_freq"] = 20 
+    args["output_dir"] = 'img2img_turbo_annotations/outputs'
+    args["validation_steps"] = 50              
+    args["validation_num_images"] = -1
+    args["checkpointing_steps"] = 1000
+
+    # args for the optimization options
+    args["learning_rate"] = 1e-5
+    args["adam_beta1"] = 0.9
+    args["adam_beta2"] = 0.999
+    args["adam_weight_decay"] = 1e-2
+    args["adam_epsilon"] = 1e-08        
+    args["max_grad_norm"] = 10.0
+    args["lr_scheduler"] = "constant"                                                                                                                     
+    args["lr_warmup_steps"] = 500
+    args["lr_num_cycles"] = 1                                                                                                        
+    args["lr_power"] = 1.0       
+    args["gradient_accumulation_steps"] = 1                                                                                                                                                                    # memory saving options
+    args["allow_tf32"] = False
+    args["gradient_checkpointing"] = False
+    args["enable_xformers_memory_efficient_attention"] = True
+
+
+    # dynamic conditional quantum embeddings with the VAE frozen
+    args["quantum_dynamic"] = True
+    args["cl_comp"] = False
+    args["pretrained_model_path"] = "model_251.pkl"
+    args["quantum_dims"] = (4, 16, 16)
+    args["quantum_processes"] = 2
+    args["training_images"] = 1.
+    return SimpleNamespace(**args)
 
 
 def build_transform(image_prep):
