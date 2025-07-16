@@ -26,6 +26,7 @@ Tests for the main QuantumLayer class.
 
 import pytest
 import torch
+import perceval as pcvl
 
 import merlin as ML
 
@@ -319,3 +320,93 @@ class TestQuantumLayer:
         # Output should be probability distribution
         assert torch.all(output >= -1e6)  # Reasonable bounds
         assert output.shape[0] == 2
+
+    def test_simple_perceval_circuit_no_input(self):
+        """Test QuantumLayer with simple perceval circuit and no input parameters."""
+        # Create a simple perceval circuit with no input parameters
+        circuit = pcvl.Circuit(3)  # 3 modes
+        circuit.add(0, pcvl.BS())  # Beam splitter on modes 0,1
+        circuit.add(0, pcvl.PS(pcvl.P("phi1")))  # Phase shifter with trainable parameter
+        circuit.add(1, pcvl.BS())  # Beam splitter on modes 1,2
+        circuit.add(1, pcvl.PS(pcvl.P("phi2")))  # Another phase shifter
+        
+        # Define input state (where photons are placed)
+        input_state = [1, 0, 0]  # 1 photon in first mode
+        
+        # Create QuantumLayer with custom circuit
+        layer = ML.QuantumLayer(
+            input_size=0,  # No input parameters
+            circuit=circuit,
+            input_state=input_state,
+            trainable_parameters=["phi"],  # Parameters to train (by prefix)
+            input_parameters=None,  # No input parameters
+            output_size=3,
+            output_mapping_strategy=ML.OutputMappingStrategy.LINEAR
+        )
+        
+        # Test layer properties
+        assert layer.input_size == 0
+        assert layer.output_size == 3
+        # Check that it has trainable parameters
+        trainable_params = [p for p in layer.parameters() if p.requires_grad]
+        assert len(trainable_params) > 0, "Layer should have trainable parameters"
+        
+        # Test forward pass (no input needed)
+        output = layer()
+        assert output.shape == (3,)
+        assert torch.all(torch.isfinite(output))
+        
+        # Test gradient computation
+        loss = output.sum()
+        loss.backward()
+        
+        # Check that trainable parameters have gradients
+        for param in layer.parameters():
+            if param.requires_grad:
+                assert param.grad is not None
+
+    def test_simple_perceval_circuit_no_trainable_parameter(self):
+        """Test QuantumLayer with simple perceval circuit and no trainable parameters."""
+        # Create a simple perceval circuit with no input parameters
+        circuit = pcvl.Circuit(3)  # 3 modes
+        circuit.add(0, pcvl.BS())  # Beam splitter on modes 0,1
+        circuit.add(0, pcvl.PS(pcvl.P("phi1")))  # Phase shifter with trainable parameter
+        circuit.add(1, pcvl.BS())  # Beam splitter on modes 1,2
+        circuit.add(1, pcvl.PS(pcvl.P("phi2")))  # Another phase shifter
+
+        # Define input state (where photons are placed)
+        input_state = [1, 0, 0]  # 1 photon in first mode
+
+        # Create QuantumLayer with custom circuit
+        layer = ML.QuantumLayer(
+            input_size=0,  # No input parameters
+            circuit=circuit,
+            input_state=input_state,
+            trainable_parameters=None,  # Parameters to train (by prefix)
+            input_parameters=["phi"],  # No input parameters
+            output_size=3,
+            output_mapping_strategy=ML.OutputMappingStrategy.LINEAR
+        )
+
+        dummy_input = torch.rand(1, 2)
+
+        # Test layer properties
+        assert layer.input_size == 0
+        assert layer.output_size == 3
+        # Check that it has trainable parameters
+        trainable_params = [p for p in layer.parameters() if p.requires_grad]
+        assert len(trainable_params) > 0, "Layer should have trainable parameters"
+
+        # Test forward pass (no input needed)
+        output = layer(dummy_input)
+        assert output.shape == (1,3)
+        assert torch.all(torch.isfinite(output))
+
+        # Test gradient computation
+        loss = output.sum()
+        loss.backward()
+
+        # Check that trainable parameters have gradients
+        for param in layer.parameters():
+            if param.requires_grad:
+                assert param.grad is not None

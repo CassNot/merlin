@@ -81,7 +81,8 @@ class QuantumLayer(nn.Module):
         index_photons: list[tuple[int, int]] | None = None,
     ):
         super().__init__()
-
+        trainable_parameters = trainable_parameters or []
+        input_parameters = input_parameters or []
         self.device = device
         self.dtype = dtype or torch.float32
         self.input_size = input_size
