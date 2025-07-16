@@ -57,7 +57,9 @@ class ComputationProcess(AbstractComputationProcess):
         self.no_bunching = no_bunching
         self.output_map_func = output_map_func
         self.index_photons = index_photons
-
+        print(
+            f"\n Parameter specs in ComputationProcess = trainable = {self.trainable_parameters} and input_paramters = {self.input_parameters}"
+        )
         # Extract circuit parameters for graph building
         if isinstance(input_state, dict):
             input_state = list(input_state.keys())[0]
@@ -70,7 +72,7 @@ class ComputationProcess(AbstractComputationProcess):
     def _setup_computation_graphs(self):
         """Setup unitary and simulation computation graphs."""
         # Determine parameter specs
-        parameter_specs = self.trainable_parameters + list(self.input_parameters)
+        parameter_specs = self.trainable_parameters + self.input_parameters
 
         # Build unitary graph
         self.converter = CircuitConverter(

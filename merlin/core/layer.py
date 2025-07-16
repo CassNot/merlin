@@ -81,17 +81,19 @@ class QuantumLayer(nn.Module):
         index_photons: list[tuple[int, int]] | None = None,
     ):
         super().__init__()
-        trainable_parameters = trainable_parameters or []
-        input_parameters = input_parameters or []
+
         self.device = device
         self.dtype = dtype or torch.float32
         self.input_size = input_size
         self.no_bunching = no_bunching
         self.index_photons = index_photons
+        trainable_parameters = trainable_parameters or []
+        input_parameters = input_parameters or []
 
         # Determine construction mode
         if ansatz is not None:
             self._init_from_ansatz(ansatz, output_size, output_mapping_strategy)
+
         elif circuit is not None:
             self._init_from_custom_circuit(
                 circuit,
@@ -121,7 +123,9 @@ class QuantumLayer(nn.Module):
         self.auto_generation_mode = True
 
         # For ansatz mode, we need to create a new computation process with correct device
-        if self.index_photons is not None or self.device != ansatz.device:
+        if self.index_photons is not None:
+            print("\n - Creating a circuit with ComputationProcessFactory")
+
             # Create a new computation process with index_photons support or correct device
             self.computation_process = ComputationProcessFactory.create(
                 circuit=ansatz.circuit,
@@ -135,8 +139,14 @@ class QuantumLayer(nn.Module):
                 index_photons=self.index_photons,
             )
         else:
+            print("\n -> Creating a circuit with Ansatz")
             # Use the ansatz's computation process as before
-            self.computation_process = ansatz.computation_process
+            # Set ansatz device to be the same as the QuantumLayer
+            if self.device is not None:
+                ansatz.device = self.device
+            print(f"Ansatz input parameter = {ansatz.input_parameters}")
+            # Build computation process from ansatz on the correct device
+            self.computation_process = ansatz._build_computation_process()
 
         self.feature_encoder = ansatz.feature_encoder
 
@@ -180,7 +190,6 @@ class QuantumLayer(nn.Module):
         """Initialize from custom circuit (backward compatible mode)."""
         self.auto_generation_mode = False
         self.bandwidth_coeffs = None
-
         # Handle state - with index_photons consideration
         if input_state is not None:
             self.input_state = input_state
@@ -624,7 +633,6 @@ class QuantumLayer(nn.Module):
             output_size=output_size,  # Can be None for automatic calculation
             output_mapping_strategy=output_mapping_strategy,
             dtype=dtype,
-            device=device,
         )
 
         # IMPORTANT: Override the ansatz's output_mapping_strategy to ensure our parameter is used
