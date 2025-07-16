@@ -57,9 +57,6 @@ class ComputationProcess(AbstractComputationProcess):
         self.no_bunching = no_bunching
         self.output_map_func = output_map_func
         self.index_photons = index_photons
-        print(
-            f"\n Parameter specs in ComputationProcess = trainable = {self.trainable_parameters} and input_paramters = {self.input_parameters}"
-        )
         # Extract circuit parameters for graph building
         if isinstance(input_state, dict):
             input_state = list(input_state.keys())[0]

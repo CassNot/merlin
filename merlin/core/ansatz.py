@@ -106,7 +106,6 @@ class Ansatz:
                 valid_specs.append(spec)
 
     def _build_computation_process(self):
-        print(f" - Bulding computation process with device = {self.device}")
         self.computation_process = ComputationProcessFactory.create(
             circuit=self.circuit,
             input_state=self.input_state,

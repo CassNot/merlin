@@ -124,8 +124,6 @@ class QuantumLayer(nn.Module):
 
         # For ansatz mode, we need to create a new computation process with correct device
         if self.index_photons is not None:
-            print("\n - Creating a circuit with ComputationProcessFactory")
-
             # Create a new computation process with index_photons support or correct device
             self.computation_process = ComputationProcessFactory.create(
                 circuit=ansatz.circuit,
@@ -139,12 +137,10 @@ class QuantumLayer(nn.Module):
                 index_photons=self.index_photons,
             )
         else:
-            print("\n -> Creating a circuit with Ansatz")
             # Use the ansatz's computation process as before
             # Set ansatz device to be the same as the QuantumLayer
             if self.device is not None:
                 ansatz.device = self.device
-            print(f"Ansatz input parameter = {ansatz.input_parameters}")
             # Build computation process from ansatz on the correct device
             self.computation_process = ansatz._build_computation_process()
 
