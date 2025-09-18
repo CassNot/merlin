@@ -2,7 +2,6 @@ import torch
 import perceval as pcvl
 import numpy as np
 
-from .utils import generate_all_fock_states
 from ..sampling.autodiff import AutoDiffProcess
 from ..pcvl_pytorch.locirc_to_tensor import CircuitConverter
 from ..pcvl_pytorch.slos_torchscript import build_slos_distribution_computegraph as build_slos_graph
@@ -240,8 +239,8 @@ class FidelityKernel(torch.nn.Module):
             dtype=self.dtype
         )
         # Find index of input state in output distribution
-        all_fock_states = list(generate_all_fock_states(m, n, no_bunching))
-        self._input_state_index = all_fock_states.index(tuple(input_state))
+        keys, _ = self._slos_graph.compute(torch.eye(m, dtype = torch.cfloat), input_state)
+        self._input_state_index = keys.index(tuple(input_state))
 
         # For sampling
         self._autodiff_process = AutoDiffProcess()
