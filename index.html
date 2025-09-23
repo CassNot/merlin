@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>MerLin Benchmark Results</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; margin: 40px; }
+        .header { text-align: center; margin-bottom: 40px; }
+        .benchmarks { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        .benchmark-card { border: 1px solid #e1e4e8; border-radius: 8px; padding: 20px; }
+        .benchmark-card h3 { margin-top: 0; color: #0366d6; }
+        .benchmark-card a { text-decoration: none; color: #0366d6; }
+        .benchmark-card a:hover { text-decoration: underline; }
+        .benchmark-card p { color: #586069; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🚀 MerLin Benchmark Results</h1>
+        <p>Performance tracking for MerLin quantum machine learning framework</p>
+    </div>
+    
+    <div class="benchmarks">
+        <div class="benchmark-card">
+            <h3><a href="dev/bench/slos-core/">SLOS Core Functions</a></h3>
+            <p>Performance benchmarks for core SLOS functions: build_graph, compute, and compute_pa_inc</p>
+            <p><strong>Functions tested:</strong> build_slos_distribution_computegraph, SLOSComputeGraph.compute</p>
+            <p><strong>Configurations:</strong> 4-10 modes, CPU, multiple precisions</p>
+        </div>
+        
+        <div class="benchmark-card">
+            <h3><a href="dev/bench/no-bunching/">No Bunching Tests</a></h3>
+            <p>Performance benchmarks for photon bunching prevention algorithms</p>
+            <p><strong>Functions tested:</strong> No bunching computation, Fock space comparison</p>
+            <p><strong>Configurations:</strong> 6 modes, 3 photons, both bunching modes</p>
+        </div>
+        
+        <div class="benchmark-card">
+            <h3><a href="dev/bench/layer/">Quantum Layer Tests</a></h3>
+            <p>Performance benchmarks for quantum layer operations and transformations</p>
+            <p><strong>Functions tested:</strong> Forward pass, batched computation</p>
+            <p><strong>Configurations:</strong> Various batch sizes, multiple circuit types</p>
+        </div>
+        
+        <div class="benchmark-card">
+            <h3><a href="dev/bench/robustness/">Robustness Tests</a></h3>
+            <p>Performance benchmarks for system robustness and stability testing</p>
+            <p><strong>Functions tested:</strong> Large batches, extreme values, numerical stability</p>
+            <p><strong>Configurations:</strong> Stress testing with edge cases</p>
+        </div>
+    </div>
+    
+    <footer style="text-align: center; margin-top: 60px; color: #586069;">
+        <p>Generated automatically by <a href="https://github.com/benchmark-action/github-action-benchmark">github-action-benchmark</a></p>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>MerLin Benchmark Results - All Benchmarks</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; margin: 40px; }
+        .header { text-align: center; margin-bottom: 40px; }
+        .navigation { text-align: center; margin-bottom: 30px; }
+        .nav-button { 
+            display: inline-block; 
+            margin: 10px; 
+            padding: 15px 30px; 
+            background-color: #0366d6; 
+            color: white; 
+            text-decoration: none; 
+            border-radius: 6px; 
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+        .nav-button:hover { background-color: #0256cc; color: white; text-decoration: none; }
+        .benchmarks { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 30px; }
+        .benchmark-card { border: 1px solid #e1e4e8; border-radius: 8px; padding: 20px; }
+        .benchmark-card h3 { margin-top: 0; color: #0366d6; }
+        .benchmark-card a { text-decoration: none; color: #0366d6; }
+        .benchmark-card a:hover { text-decoration: underline; }
+        .benchmark-card p { color: #586069; margin: 10px 0; }
+        .back-link { text-align: center; margin-bottom: 20px; }
+        .back-link a { color: #0366d6; text-decoration: none; }
+        .back-link a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="back-link">
+        <a href="../../">← Back to Main Page</a>
+    </div>
+    
+    <div class="header">
+        <h1>🚀 MerLin Benchmark Results</h1>
+        <p>Performance tracking for MerLin quantum machine learning framework</p>
+    </div>
+    
+    <div class="navigation">
+        <h2>Available Benchmarks</h2>
+                <a href="layer/" class="nav-button">Layer</a>
+                <a href="no-bunching/" class="nav-button">No Bunching</a>
+                <a href="robustness/" class="nav-button">Robustness</a>
+                <a href="slos-core/" class="nav-button">Slos Core</a>
+                <a href="unitary-conversion/" class="nav-button">Unitary Conversion</a>
+            </div>
+    
+    <div class="benchmarks">
+                <div class="benchmark-card">
+            <h3><a href="layer/">Layer</a></h3>
+            <p>Performance benchmarks for layer</p>
+        </div>
+        
+                <div class="benchmark-card">
+            <h3><a href="no-bunching/">No Bunching</a></h3>
+            <p>Performance benchmarks for no bunching</p>
+        </div>
+        
+                <div class="benchmark-card">
+            <h3><a href="robustness/">Robustness</a></h3>
+            <p>Performance benchmarks for robustness</p>
+        </div>
+        
+                <div class="benchmark-card">
+            <h3><a href="slos-core/">Slos Core</a></h3>
+            <p>Performance benchmarks for slos core</p>
+        </div>
+        
+                <div class="benchmark-card">
+            <h3><a href="unitary-conversion/">Unitary Conversion</a></h3>
+            <p>Performance benchmarks for unitary conversion</p>
+        </div>
+        
+            </div>
+    
+    <footer style="text-align: center; margin-top: 60px; color: #586069;">
+        <p>Generated automatically by <a href="https://github.com/benchmark-action/github-action-benchmark">github-action-benchmark</a></p>
+        <p>Last updated: <span id="timestamp"></span></p>
+        <script>document.getElementById('timestamp').textContent = new Date().toLocaleString();</script>
+    </footer>
+</body>
+</html>
