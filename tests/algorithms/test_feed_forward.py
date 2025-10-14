@@ -24,6 +24,9 @@
 Tests for the FeedForward class.
 """
 
+import math
+from collections import defaultdict
+
 import pytest
 import torch
 
@@ -129,6 +132,128 @@ class TestFeedForwardBlock:
         assert isinstance(keys, list)
         assert len(keys) > 0
 
+    def test_feed_forward_matches_perceval_ffsimulator(
+        self, monkeypatch, tmp_path
+    ):
+        """Compare FeedForwardBlock output against Perceval FFSimulator on a controlled setup."""
+        # Perceval stores persistent data relative to $HOME -> redirect it to a temporary,
+        # Step 0 – sandbox Perceval's persistent data so the test stays hermetic
+        # (important for CI runners with restricted $HOME).
+        monkeypatch.setenv("HOME", str(tmp_path))
+
+        import perceval as pcvl
+        from perceval.backends import SLOSBackend
+        from perceval.components import Detector, FFCircuitProvider, Unitary
+        from perceval.utils import BasicState
+
+        # Step 1 – instantiate the FeedForwardBlock we want to validate. Keeping the
+        # RNG seed fixed ensures the layer construction is deterministic.
+        torch.manual_seed(0)
+        block = FeedForwardBlock(
+            input_size=1,
+            n=2,
+            m=4,
+            depth=1,
+            conditional_modes=[0],
+        )
+
+        # The quantum layers are initialised with random trainable parameters. We force
+        # them to zero so that no-bunching remains exact (QuantumLayer.forward renormalises
+        # after discarding bunched states), which keeps both simulators in the same regime.
+        with torch.no_grad():
+            for param in block.parameters():
+                param.zero_()
+
+        # Step 2 – run the frozen block once to obtain its output distribution.
+        x = torch.zeros(1, 1)
+        model_output = block(x).detach().cpu().numpy()[0]
+        output_keys = list(block.output_keys)
+
+        def layer_unitary(layer, params):
+            """Return the numeric Perceval unitary matching a QuantumLayer."""
+            # Each QuantumLayer wraps a symbolic Perceval circuit. We copy the circuit
+            # and assign the numerical parameters extracted from PyTorch so we can reuse
+            # it on the Perceval side.
+            circuit = layer.circuit.copy()
+            mapping = layer.computation_process.converter.param_mapping
+            assignments = {}
+            for name, (tensor_idx, param_idx) in mapping.items():
+                tensor = params[tensor_idx]
+                if isinstance(tensor, torch.Tensor):
+                    detached = tensor.detach()
+                    if detached.dim() > 1:
+                        detached = detached[0]
+                    value = detached[param_idx].item()
+                else:
+                    value = tensor[param_idx]
+                assignments[name] = float(value)
+            circuit.assign(assignments)
+            return circuit.compute_unitary()
+
+        # Step 3 – pull out the parameters for every branch of the feed-forward tree.
+        # Root layer: tuple `()`. Children conditioned on measuring 0 or 1 photon:
+        # tuples `(0,)` and `(1,)`. We will reconstruct each branch as a Perceval unitary.
+        root_params = block.layers[()].prepare_parameters([x])
+        child_zero_params = block.layers[(0,)].prepare_parameters([])
+        child_one_params = block.layers[(1,)].prepare_parameters([])
+
+        root_unitary = layer_unitary(block.layers[()], root_params)
+        zero_unitary = layer_unitary(block.layers[(0,)], child_zero_params)
+        one_unitary = layer_unitary(block.layers[(1,)], child_one_params)
+
+        # Step 4 – rebuild the feed-forward logic with Perceval primitives:
+        #   1. apply the root unitary,
+        #   2. measure the conditional mode with a PNR detector,
+        #   3. feed-forward the appropriate child circuit.
+        backend = SLOSBackend()
+        processor = pcvl.Processor(backend, 4)
+        processor.add(0, Unitary(root_unitary))
+        processor.add(0, Detector.pnr())
+
+        provider = FFCircuitProvider(
+            m=1,
+            offset=0,
+            default_circuit=Unitary(zero_unitary),
+        )
+        provider.add_configuration((0,), Unitary(zero_unitary))
+        provider.add_configuration((1,), Unitary(one_unitary))
+        processor.add((0,), provider)
+        processor.with_input(BasicState([1, 1, 0, 0]))
+
+        simulator_result = processor.probs()["results"]
+
+        conditional_modes = [0]
+        ffs_probs = defaultdict(float)
+        for state, probability in simulator_result.items():
+            reduced_state = tuple(
+                value
+                for idx, value in enumerate(state)
+                if idx not in conditional_modes
+            )
+            # QuantumLayer.forward renormalises after dropping bunched states; mirror
+            # that behaviour by ignoring outcomes where two photons share one mode.
+            if any(v > 1 for v in reduced_state):
+                continue
+            ffs_probs[reduced_state] += probability
+
+        # Step 5 – normalise and compare Perceval vs FeedForwardBlock distributions.
+        total_prob = sum(ffs_probs.values())
+        assert not math.isclose(total_prob, 0.0), "FFSimulator returned zero probability mass"
+        for key in ffs_probs:
+            ffs_probs[key] /= total_prob
+        
+        sim_keys = set(ffs_probs.keys())
+        expected_keys = set(output_keys)
+        assert sim_keys.issubset(expected_keys), (
+            f"Simulator produced unexpected keys {sorted(sim_keys - expected_keys)}"
+        )
+
+        # The FeedForwardBlock output is ordered according to block.output_keys.
+        # We compare the probability assigned to each key against the simulator result.
+        for key, expected in zip(output_keys, model_output):
+            assert ffs_probs.get(key, 0.0) == pytest.approx(
+                float(expected), abs=1e-6
+            )
 
 @pytest.mark.skipif(
     not torch.cuda.is_available(), reason="CUDA not available for GPU tests"
