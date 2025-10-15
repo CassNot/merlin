@@ -21,7 +21,10 @@
 # SOFTWARE.
 
 """
-Tests for the FeedForward class.
+Behavioural regression tests for feed-forward quantum layers and pooling blocks.
+
+These tests focus on the branching logic, probabilistic consistency, and integration
+with Perceval simulators to ensure refactors preserve semantics.
 """
 
 import math
@@ -63,6 +66,17 @@ class TestFeedForwardBlock:
         assert len(tuples) > 0
         assert all(isinstance(t, tuple) for t in tuples)
 
+    def test_generate_possible_tuples_respect_constraints(self):
+        """No tuple should violate photon/empty-mode constraints."""
+        ff = FeedForwardBlock(input_size=1, n=1, m=3, conditional_modes=[0])
+        tuples = ff.generate_possible_tuples()
+        # For a single photon and one conditional mode the generator should not
+        # explore outcomes that would consume the only photon or empty mode twice.
+        assert set(tuples) == {(), (0,)}
+        for tup in tuples:
+            assert tup.count(1) <= ff.n_photons - 1
+            assert tup.count(0) <= ff.m - ff.n_photons - 1
+
     def test_parameters_method(self):
         """Check that parameters() returns a non-empty iterable."""
         ff = FeedForwardBlock(input_size=4, n=2, m=4, depth=2, conditional_modes=[0])
@@ -89,6 +103,15 @@ class TestFeedForwardBlock:
         assert output.shape[1] > 0
         assert torch.allclose(output.sum(dim=1), torch.ones(2), atol=1e-3)
 
+    def test_get_output_size_matches_forward(self):
+        """get_output_size should agree with an explicit forward pass."""
+        ff = FeedForwardBlock(input_size=3, n=2, m=4, depth=2, conditional_modes=[0])
+        out_size = ff.get_output_size()
+        sample = torch.rand(1, ff.input_size)
+        # A real forward pass should expose the same number of output branches.
+        output = ff(sample)
+        assert out_size == output.shape[1]
+
     def test_backward_pass(self):
         """Ensure gradients propagate correctly through the quantum layers."""
         ff = FeedForwardBlock(input_size=4, n=2, m=4, depth=2, conditional_modes=[0])
@@ -98,6 +121,46 @@ class TestFeedForwardBlock:
         loss.backward()
         assert x.grad is not None
         assert not torch.isnan(x.grad).any()
+
+    def test_input_segments_cover_input_space(self):
+        """Input segments should form a contiguous partition of the input features."""
+        ff = FeedForwardBlock(input_size=5, n=2, m=6, depth=2, conditional_modes=[0])
+        spans = list(ff.input_segments.values())
+        # Sum of all local slices must match the total number of classical inputs.
+        total = sum(end - start for start, end in spans)
+        assert total == ff.input_size
+        assert min(start for start, _ in spans) == 0
+        assert max(end for _, end in spans) == ff.input_size
+
+    def test_size_ff_layer_counts_depth_branches(self):
+        """size_ff_layer should count the number of tuples at each depth."""
+        ff = FeedForwardBlock(input_size=2, n=2, m=4, depth=2, conditional_modes=[0])
+        # Root depth contains only the empty tuple, first depth splits into binary
+        # outcomes, second depth should track two viable continuations.
+        assert ff.size_ff_layer(0) == 1  # root tuple
+        assert ff.size_ff_layer(1) == 2  # (0,), (1,)
+        assert ff.size_ff_layer(2) == 2  # (0,1), (1,0)
+
+    def test_define_ff_layer_replaces_layers(self):
+        """define_ff_layer must swap in the provided QuantumLayer instances."""
+        ff = FeedForwardBlock(input_size=2, n=2, m=4, depth=2, conditional_modes=[0])
+        depth = 1
+        target_tuples = sorted(
+            [tup for tup in ff.tuples if len(tup) == depth * ff.n_cond]
+        )
+        original_layers = [ff.layers[tup] for tup in target_tuples]
+        replacements = []
+        for tup in target_tuples:
+            remaining_modes = ff.m - len(tup)
+            remaining_photons = ff.n_photons - sum(tup)
+            # Replacement layers mirror the remaining physical resources in each branch.
+            replacements.append(define_layer_no_input(remaining_modes, remaining_photons))
+        ff.define_ff_layer(depth, replacements)
+        for tup, original, replacement in zip(
+            target_tuples, original_layers, replacements
+        ):
+            assert ff.layers[tup] is replacement
+            assert ff.layers[tup] is not original
 
     def test_indices_by_values_and_match_indices(self):
         """Test low-level index mapping helpers."""
@@ -251,6 +314,7 @@ class TestFeedForwardBlock:
         # The FeedForwardBlock output is ordered according to block.output_keys.
         # We compare the probability assigned to each key against the simulator result.
         for key, expected in zip(output_keys, model_output):
+            print(f"Key {key}: model {expected:.6f} vs sim {ffs_probs.get(key, 0.0):.6f}")
             assert ffs_probs.get(key, 0.0) == pytest.approx(
                 float(expected), abs=1e-6
             )
@@ -395,6 +459,36 @@ class TestPoolingFeedForward:
         output = pff(amplitudes)
         assert output.device == amplitudes.device
 
+    def test_forward_matches_manual_pooling(self):
+        """Manual pooling computation should agree with module output."""
+        pooling_modes = [[0, 1], [2, 3]]
+        pff = PoolingFeedForward(
+            n_modes=4, n_photons=2, n_output_modes=2, pooling_modes=pooling_modes
+        )
+        total_states = pff.match_indices.numel() + pff.exclude_indices.numel()
+        # Deterministic amplitudes make it easy to verify the scatter logic.
+        amplitudes = torch.arange(
+            1, total_states + 1, dtype=torch.float32
+        ).unsqueeze(0)
+        output = pff(amplitudes)
+        assert pff.match_indices.numel() > 0
+
+        mask = torch.ones(total_states, dtype=torch.bool)
+        if pff.exclude_indices.numel():
+            mask[pff.exclude_indices.long()] = False
+        filtered = amplitudes[:, mask]
+
+        manual = torch.zeros(1, len(pff.keys_out), dtype=amplitudes.dtype)
+        for col, target in enumerate(pff.match_indices.tolist()):
+            # Recreate scatter_add manually to assert exact binning behaviour.
+            manual[0, target] += filtered[0, col]
+
+        norm = manual.abs().pow(2).sum(dim=-1, keepdim=True).sqrt()
+        expected = manual / norm
+        assert torch.allclose(output, expected, atol=1e-6)
+        probs = output.abs().pow(2).sum(dim=-1)
+        assert torch.allclose(probs, torch.ones_like(probs), atol=1e-6)
+
     def test_match_tuples_method(self):
         """Test match_tuples method."""
         pff = PoolingFeedForward(n_modes=8, n_photons=2, n_output_modes=4)
@@ -404,8 +498,9 @@ class TestPoolingFeedForward:
         match_indices, exclude_indices = pff.match_tuples(
             keys_in, keys_out, pooling_modes
         )
-        assert isinstance(match_indices, list)
-        assert isinstance(exclude_indices, list)
+        # Only the second input collapses to a valid output state; the first is dropped.
+        assert match_indices == [1]
+        assert exclude_indices == [0]
 
     def test_backward_pass_integration(self):
         """Test backward pass through PoolingFeedForward."""
