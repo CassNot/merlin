@@ -67,8 +67,8 @@ Those computation spaces can also be assigned with the ``computation_space`` arg
 is prefered to exploit the ``measurement_strategy`` since ``computation_space`` will be deprecated in the future.
 
 It will be the only way to control the computation space as the ``no_bunching`` flag is deprecated.
-.. deprecated:: 0.4
-   The use of the ``no_bunching`` flag  is deprecated and will be removed in version 0.4.
+.. warning:: *Deprecated since version 0.3:*
+   The use of the ``no_bunching`` flag  is deprecated and is removed since version 0.3.0.
    Use the ``computation_space`` flag inside ``measurement_strategy`` instead. See :doc:`/user_guide/migration_guide`.
 
 Another parameter is also relevent.

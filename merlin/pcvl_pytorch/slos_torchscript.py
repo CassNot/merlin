@@ -39,6 +39,10 @@ import torch.jit as jit
 from merlin.core.computation_space import ComputationSpace
 from merlin.utils.deprecations import raise_no_bunching_deprecated
 from merlin.utils.dtypes import resolve_float_complex
+from merlin.utils.normalization import (
+    normalize_probabilities,
+    probabilities_from_amplitudes,
+)
 
 
 def _get_complex_dtype_for_float(dtype: torch.dtype) -> torch.dtype:
@@ -911,31 +915,16 @@ class SLOSComputeGraph:
 
         is_batched = amplitudes.shape[0] > 1
 
-        probabilities = amplitudes.real**2 + amplitudes.imag**2
-        probabilities *= self.norm_factor_output.to(probabilities.device)
-        probabilities /= self.norm_factor_input
+        probabilities = probabilities_from_amplitudes(amplitudes)
 
         # Apply output mapping if needed
         if self.output_map_func is not None:
             probabilities = self.mapping_function(probabilities)
             keys = self.mapped_keys
         else:
-            if self.computation_space in (
-                ComputationSpace.UNBUNCHED,
-                ComputationSpace.DUAL_RAIL,
-            ):
-                sum_probs = probabilities.sum(dim=1, keepdim=True)
-                # Only normalize when sum > 0 to avoid division by zero
-                valid_entries = sum_probs > 0
-                if valid_entries.any():
-                    probabilities = torch.where(
-                        valid_entries,
-                        probabilities
-                        / torch.where(
-                            valid_entries, sum_probs, torch.ones_like(sum_probs)
-                        ),
-                        probabilities,
-                    )
+            probabilities = normalize_probabilities(
+                probabilities, self.computation_space
+            )
             keys = self.final_keys if self.keep_keys else None
         # Remove batch dimension if input was single unitary
         if not is_batched or added_batch_dim:

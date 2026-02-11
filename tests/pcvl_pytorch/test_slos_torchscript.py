@@ -4,6 +4,7 @@ import tempfile
 import perceval as pcvl
 import pytest
 import torch
+from perceval.components import BS
 
 from merlin.core.computation_space import ComputationSpace
 from merlin.pcvl_pytorch.slos_torchscript import (
@@ -126,7 +127,6 @@ def test_slos_save_load_computation_graph(get_tmp_file):
 
 
 def test_slos_compute_slos_distribution_with_output_map_function():
-
     # small instance
     m = 4
     n_photons = 2
@@ -204,4 +204,36 @@ def test_slos_compute_slos_distribution_with_output_map_function():
         f"Amplitudes do not match :\n"
         f"expected : {expected_amplitudes}\n"
         f"calculated  : {amplitudes}"
+    )
+
+
+def test_slos_compute_probs_from_amplitudes_normalizes_HOM():
+    # HOM-effect based tests
+    unitary = torch.tensor(BS().compute_unitary()).unsqueeze(0)
+    unitary = unitary.to(torch.complex64)
+
+    graph = build_slos_distribution_computegraph(
+        m=2, n_photons=2, computation_space=ComputationSpace.FOCK
+    )
+
+    _, amplitudes = graph.compute(unitary, [1, 1])
+    _, probabilities = graph.compute_probs_from_amplitudes(amplitudes)
+    assert torch.allclose(
+        probabilities.sum(), torch.tensor(1.0, dtype=probabilities.dtype), atol=1e-6
+    )
+
+
+def test_slos_compute_probs_from_amplitudes_normalizes():
+    # build random torch unitary
+    unitary = torch.tensor(pcvl.Matrix.random_unitary(4)).unsqueeze(0)
+    unitary = unitary.to(torch.complex64)
+
+    graph = build_slos_distribution_computegraph(
+        m=4, n_photons=2, dtype=torch.float, computation_space=ComputationSpace.FOCK
+    )
+
+    _, amplitudes = graph.compute(unitary, [1, 0, 1, 0])
+    _, probabilities = graph.compute_probs_from_amplitudes(amplitudes)
+    assert torch.allclose(
+        probabilities.sum(), torch.tensor(1.0, dtype=probabilities.dtype), atol=1e-6
     )

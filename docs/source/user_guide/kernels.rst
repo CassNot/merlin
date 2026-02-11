@@ -183,8 +183,8 @@ FidelityKernel Parameters
      - *from feature_map*
      - Simulation device
 
-.. deprecated:: 0.4
-   The use of the ``no_bunching`` flag  is deprecated and will be removed in version 0.4.
+.. warning:: *Deprecated since version 0.3:*
+   The use of the ``no_bunching`` flag  is deprecated and is removed since version 0.3.0.
    Use the ``computation_space`` flag instead. See :doc:`/user_guide/migration_guide`.
 
 Implementation highlights

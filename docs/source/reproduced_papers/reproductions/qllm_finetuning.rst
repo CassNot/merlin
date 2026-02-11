@@ -53,26 +53,24 @@ For a first analysis, we use a Generic Interferometer:
 .. code-block:: python
 
    import merlin as ML # Package: merlinquantum, import: merlin
+   import numpy as np
    import torch
 
    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-   # Create a simple quantum layer
    builder = ML.CircuitBuilder(n_modes=modes)
-   builder.add_entangling_layer(name="phi_")
-   builder.add_rotations(role="input", name="pl", axis="z")
-   builder.add_entangling_layer(name="phi_")
-   circuit = builder.to_pcvl_circuit()
+   builder.add_entangling_layer(trainable=True)
+   builder.add_angle_encoding(
+       modes=list(range(X_train.shape[1])),
+       scale=np.pi,
+   )
+   builder.add_entangling_layer(trainable=True)
 
-   n_photons = modes // 2
-   input_state = ML.generate_state(modes, n_photons, ML.StatePattern.PERIODIC)
-
-   layer = ML.QuantumLayer(
-       input_size=0,
-       circuit=circuit,
-       input_state=input_state,
-       trainable_parameters=["phi_"],
-       input_parameters=["pl"],
+   # Create a simple quantum layer
+   q_layer = ML.QuantumLayer(
+       input_size=X_train.shape[1],
+       builder=builder,
+       n_photons=modes // 2,
        measurement_strategy=ML.MeasurementStrategy.probs(),
    )
 

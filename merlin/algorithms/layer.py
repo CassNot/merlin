@@ -60,6 +60,7 @@ from ..utils.deprecations import (
     sanitize_parameters,
 )
 from ..utils.grouping import ModGrouping
+from ..utils.normalization import normalize_probabilities_and_amplitudes
 from .layer_utils import (
     InitializationContext,
     apply_angle_encoding,
@@ -999,36 +1000,9 @@ class QuantumLayer(MerlinModule):
         self, amplitudes: torch.Tensor
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """Return probability distribution and renormalized amplitudes."""
-        # even in amplitude mode, we do need to calculation distribution for renormalization
-        # of the amplitudes
-        distribution = amplitudes.real**2 + amplitudes.imag**2
-
-        # renormalize distribution and amplitudes for UNBUNCHED and DUAL_RAIL spaces
-        if (
-            self.computation_space is ComputationSpace.UNBUNCHED
-            or self.computation_space is ComputationSpace.DUAL_RAIL
-        ):
-            sum_probs = distribution.sum(dim=-1, keepdim=True)
-
-            # Only normalize when sum > 0 to avoid division by zero
-            valid_entries = sum_probs > 0
-            if valid_entries.any():
-                distribution = torch.where(
-                    valid_entries,
-                    distribution
-                    / torch.where(valid_entries, sum_probs, torch.ones_like(sum_probs)),
-                    distribution,
-                )
-                amplitudes = torch.where(
-                    valid_entries,
-                    amplitudes
-                    / torch.where(
-                        valid_entries, sum_probs.sqrt(), torch.ones_like(sum_probs)
-                    ),
-                    amplitudes,
-                )
-
-        return distribution, amplitudes
+        return normalize_probabilities_and_amplitudes(
+            amplitudes, self.computation_space
+        )
 
     def _prepare_amplitude_input(
         self, inputs: list[torch.Tensor]

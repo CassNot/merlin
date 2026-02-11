@@ -31,11 +31,19 @@ from .combinadics import Combinadics
 from .deprecations import sanitize_parameters
 from .dtypes import resolve_float_complex, to_torch_dtype
 from .grouping import LexGrouping, ModGrouping
+from .normalization import (
+    normalize_probabilities,
+    normalize_probabilities_and_amplitudes,
+    probabilities_from_amplitudes,
+)
 
 __all__ = [
     "LexGrouping",
     "ModGrouping",
     "Combinadics",
+    "normalize_probabilities",
+    "normalize_probabilities_and_amplitudes",
+    "probabilities_from_amplitudes",
     "sanitize_parameters",
     "resolve_float_complex",
     "to_torch_dtype",
