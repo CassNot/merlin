@@ -5,6 +5,7 @@ sphinxcontrib-bibtex
 sphinx_autodoc_typehints
 enum-tools[sphinx]
 nbsphinx
+sphinx-gallery
 jinja2==3.0.0
 ipython
 ipykernel

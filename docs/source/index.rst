@@ -29,6 +29,7 @@ Advanced users can leverage the underlying `Perceval <https://perceval.quandela.
    quickstart/index
    user_guide/index
    quantum_expert_area/index
+   examples/index
    notebooks/index
    reproduced_papers/index
    api_reference/index
@@ -138,4 +139,3 @@ Support
 ----
 
 **⚡ Ready to add quantum power to your AI models? Get started with MerLin! ⚡**
-

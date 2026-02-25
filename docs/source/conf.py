@@ -77,6 +77,7 @@ extensions = [
     "sphinxcontrib.bibtex",
     "enum_tools.autoenum",
     "nbsphinx",
+    "sphinx_gallery.gen_gallery",
     "sphinx_multiversion",
 ]
 
@@ -131,3 +132,25 @@ nbsphinx_execute_arguments = [
     "--InlineBackend.figure_formats={'svg', 'pdf'}",
     "--InlineBackend.rc={'figure.dpi': 96}",
 ]
+
+sphinx_gallery_conf = {
+    "examples_dirs": [
+        "examples/notebooks",
+        "examples/reproduced_papers",
+        "examples/rust",
+    ],
+    "gallery_dirs": [
+        "auto_examples/notebooks",
+        "auto_examples/reproduced_papers",
+        "auto_examples/rust",
+    ],
+    "thumbnail_size": (200, 150),
+    "line_numbers": False,
+    "remove_config_comments": True,
+    "show_memory": False,
+    "junit": "",
+    "log_level": {"root": "warning"},
+    "first_notebook_cell": None,
+    "last_notebook_cell": None,
+    "notebook_images": False,
+}
