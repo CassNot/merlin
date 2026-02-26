@@ -95,9 +95,13 @@ Explore MerLin examples across different categories below. Browse notebooks, rep
             Step-by-step tutorials and demonstrations of MerLin features
         </div>
         <div class="gallery-grid">
-            <a href="auto_examples/notebooks/plot_iris_onboarding.html" class="gallery-card">
+            <a href="notebooks/FirstQuantumLayers.html" class="gallery-card">
                 <img src="../_static/examples/iris_sepal_classes.png" alt="First Quantum Layers">
                 <div class="gallery-card-title">First Quantum Layers (Iris)</div>
+            </a>
+            <a href="notebooks/FromSimpleToBuilder.html" class="gallery-card">
+                <img src="../_static/examples/SimpleToBuilder.svg" alt="From Simple to Builder">
+                <div class="gallery-card-title">From Simple to Builder</div>
             </a>
         </div>
     
@@ -108,7 +112,7 @@ Explore MerLin examples across different categories below. Browse notebooks, rep
             Quantum machine learning papers reproduced with MerLin
         </div>
         <div class="gallery-grid">
-            <a href="auto_examples/reproduced_papers/plot_reproduced_papers.html" class="gallery-card">
+            <a href="../auto_examples/reproduced_papers/plot_reproduced_papers.html" class="gallery-card">
                 <img src="../_static/examples/iris.svg" alt="Reproduced Papers">
                 <div class="gallery-card-title">QML Paper Reproductions</div>
             </a>
@@ -121,7 +125,7 @@ Explore MerLin examples across different categories below. Browse notebooks, rep
             Explore the Rust backend implementation and GPU-optimized simulator
         </div>
         <div class="gallery-grid">
-            <a href="auto_examples/rust/plot_rust_backend_walkthrough.html" class="gallery-card">
+            <a href="../auto_examples/rust/plot_rust_backend_walkthrough.html" class="gallery-card">
                 <img src="../_static/examples/rust.svg" alt="Rust Backend">
                 <div class="gallery-card-title">Rust Simulator Backend</div>
             </a>
