@@ -2,7 +2,6 @@
 requires = [
     "setuptools>=45",
     "wheel",
-    "scmver",
     "setuptools-scm>=8"
 ]
 build-backend = "setuptools.build_meta"
@@ -73,18 +72,11 @@ source = "https://github.com/merlinquantum/merlin"
 issues = "https://github.com/merlinquantum/merlin/issues"
 
 [tool.setuptools]
-package-dir = {"" = "src"}
-packages = [
-    "merlin",
-    "merlin.algorithms",
-    "merlin.bridge",
-    "merlin.builder",
-    "merlin.core",
-    "merlin.datasets",
-    "merlin.measurement",
-    "merlin.pcvl_pytorch",
-    "merlin.utils",
-]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["merlin*"]
+namespaces = false
 
 [tool.pytest.ini_options]
 testpaths = ["tests", "benchmarks"]
