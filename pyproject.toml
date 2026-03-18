@@ -7,7 +7,7 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "merlinquantum"
+name = "merlinquantum-test-cassnot"
 dynamic = ["version"]
 description = "Quantum neural network models using photonic circuits - Preview"
 readme= "README.md"
