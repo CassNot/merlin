@@ -1,4 +1,4 @@
-name: Publish to PyPI
+name: Publish to TestPyPI
 
 on:
   release:
@@ -7,7 +7,7 @@ on:
 
 permissions:
   contents: read
-  id-token: write  # required for PyPI Trusted Publishing (OIDC)
+  id-token: write  # required for Trusted Publishing (OIDC)
 
 jobs:
   build:
@@ -46,7 +46,7 @@ jobs:
   publish:
     needs: build
     runs-on: ubuntu-latest
-    environment: pypi
+    environment: test-merlin
     steps:
       - name: Download dist artifacts
         uses: actions/download-artifact@v4
@@ -54,8 +54,9 @@ jobs:
           name: dist
           path: dist/
 
-      - name: Publish to PyPI (Trusted Publishing)
+      - name: Publish to TestPyPI (Trusted Publishing)
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           skip-existing: true
           packages-dir: dist/
+          repository-url: https://test.pypi.org/legacy/
