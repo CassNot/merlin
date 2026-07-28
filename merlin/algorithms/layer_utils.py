@@ -353,7 +353,14 @@ def validate_and_resolve_circuit_source(
 
 def vet_experiment(experiment: pcvl.Experiment) -> dict[str, bool]:
     """Check experiment constraints."""
-    has_post_select = experiment.post_select_fn is not None
+    post_select_fn = experiment.post_select_fn
+    # Recent perceval-quandela versions (>=1.1.0) always set post_select_fn to an
+    # empty PostSelect() rather than None, so identity-check against None no longer
+    # detects "no post-selection". has_condition reports whether any constraint was
+    # actually configured, and stays correct across older perceval versions too.
+    has_post_select = post_select_fn is not None and getattr(
+        post_select_fn, "has_condition", True
+    )
     has_heralding = bool(experiment.heralds) or bool(experiment.in_heralds)
     has_feedforward = bool(getattr(experiment, "has_feedforward", False))
     has_td_attr = getattr(experiment, "has_td", None)
