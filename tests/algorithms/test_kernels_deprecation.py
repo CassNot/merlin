@@ -22,63 +22,92 @@ from merlin.builder import CircuitBuilder
 from merlin.core.computation_space import ComputationSpace
 
 
-def test_FeatureMap_simple_warns():
-    with pytest.warns(DeprecationWarning, match=r"Parameter 'n_photons' is deprecated"):
-        obj = FeatureMap.simple(input_size=2, n_photons=2)
-    assert obj is not None
-    assert obj.circuit.m == 3
-    assert obj.is_trainable
-    assert "LI_simple" in obj.trainable_parameters
-    assert "RI_simple" in obj.trainable_parameters
-
-    with pytest.warns(DeprecationWarning, match=r"Parameter 'n_photons' is deprecated"):
-        obj = FeatureMap.simple(input_size=2, n_photons=2, n_modes=6)
-    assert obj is not None
-    assert obj.circuit.m == 6
-    assert obj.is_trainable
-    assert "LI_simple" in obj.trainable_parameters
-    assert "RI_simple" in obj.trainable_parameters
-    with pytest.warns(DeprecationWarning, match=r"Parameter 'trainable' is deprecated"):
-        obj = FeatureMap.simple(input_size=2, trainable=True)
-    assert obj is not None
-    assert obj.circuit.m == 3
-    assert obj.is_trainable
-    assert "LI_simple" in obj.trainable_parameters
-    assert "RI_simple" in obj.trainable_parameters
+def _assert_no_deprecation_warning(warning_list) -> None:
+    assert not any(
+        issubclass(warning.category, DeprecationWarning) for warning in warning_list
+    )
 
 
-def test_FidelityKernel_simple_warns():
-    with pytest.warns(DeprecationWarning, match=r"Parameter 'n_photons' is deprecated"):
-        obj = FidelityKernel.simple(input_size=2, n_photons=2)
-    assert obj is not None
-    assert obj.feature_map.circuit.m == 3
-    assert obj.feature_map.is_trainable
-    assert obj.input_state == [1, 0, 1]
+def _assert_only_method_level_FidelityKernel_simple_deprecation(warning_list) -> None:
+    """FidelityKernel.simple() always emits its own 0.5 method-level warning;
+    assert that's the only DeprecationWarning raised (no parameter-level one)."""
+    deprecation_messages = [
+        str(warning.message)
+        for warning in warning_list
+        if issubclass(warning.category, DeprecationWarning)
+    ]
+    assert len(deprecation_messages) == 1
+    assert "FidelityKernel.simple() is deprecated" in deprecation_messages[0]
 
-    with pytest.warns(DeprecationWarning, match=r"Parameter 'n_photons' is deprecated"):
-        obj = FidelityKernel.simple(input_size=2, n_photons=2, n_modes=6)
-    assert obj is not None
-    assert obj.feature_map.circuit.m == 6
-    assert obj.feature_map.is_trainable
-    assert obj.input_state == [1, 0, 1, 0, 1, 0]
 
-    with pytest.warns(DeprecationWarning, match=r"Parameter 'trainable' is deprecated"):
-        obj = FidelityKernel.simple(input_size=2, trainable=True)
-    assert obj is not None
-    assert obj is not None
-    assert obj.feature_map.circuit.m == 3
-    assert obj.feature_map.is_trainable
-    assert obj.input_state == [1, 0, 1]
+def test_FeatureMap_simple_rejects_removed_n_photons():
+    """n_photons was removed in 0.4; it must fail through normal signature validation."""
+    with warnings.catch_warnings(record=True) as warning_list:
+        warnings.simplefilter("always")
+        with pytest.raises(TypeError, match=r"unexpected keyword argument 'n_photons'"):
+            FeatureMap.simple(input_size=2, n_photons=2)
+    _assert_no_deprecation_warning(warning_list)
 
-    with pytest.warns(
-        DeprecationWarning, match=r"Parameter 'input_state' is deprecated"
-    ):
-        obj = FidelityKernel.simple(input_size=2, input_state=[1, 1])
-    assert obj is not None
-    assert obj is not None
-    assert obj.feature_map.circuit.m == 3
-    assert obj.feature_map.is_trainable
-    assert obj.input_state == [1, 0, 1]
+
+def test_FeatureMap_simple_rejects_removed_trainable():
+    """trainable was removed in 0.4; it must fail through normal signature validation."""
+    with warnings.catch_warnings(record=True) as warning_list:
+        warnings.simplefilter("always")
+        with pytest.raises(TypeError, match=r"unexpected keyword argument 'trainable'"):
+            FeatureMap.simple(input_size=2, trainable=True)
+    _assert_no_deprecation_warning(warning_list)
+
+
+def test_FeatureMap_simple_rejects_unknown_kwarg():
+    """Unknown kwargs must still fail through normal Python signature validation."""
+    with warnings.catch_warnings(record=True) as warning_list:
+        warnings.simplefilter("always")
+        with pytest.raises(
+            TypeError, match=r"unexpected keyword argument 'not_a_real_kwarg'"
+        ):
+            FeatureMap.simple(input_size=2, not_a_real_kwarg=True)
+    _assert_no_deprecation_warning(warning_list)
+
+
+def test_FidelityKernel_simple_rejects_removed_n_photons():
+    """n_photons was removed in 0.4; it must fail through normal signature validation.
+
+    FidelityKernel.simple() still emits its own method-level 0.5 deprecation
+    warning, but no parameter-level warning for the removed ``n_photons``.
+    """
+    with warnings.catch_warnings(record=True) as warning_list:
+        warnings.simplefilter("always")
+        with pytest.raises(TypeError, match=r"unexpected keyword argument 'n_photons'"):
+            FidelityKernel.simple(input_size=2, n_photons=2)
+    _assert_only_method_level_FidelityKernel_simple_deprecation(warning_list)
+
+
+def test_FidelityKernel_simple_rejects_removed_trainable():
+    """trainable was removed in 0.4; it must fail through normal signature validation.
+
+    FidelityKernel.simple() still emits its own method-level 0.5 deprecation
+    warning, but no parameter-level warning for the removed ``trainable``.
+    """
+    with warnings.catch_warnings(record=True) as warning_list:
+        warnings.simplefilter("always")
+        with pytest.raises(TypeError, match=r"unexpected keyword argument 'trainable'"):
+            FidelityKernel.simple(input_size=2, trainable=True)
+    _assert_only_method_level_FidelityKernel_simple_deprecation(warning_list)
+
+
+def test_FidelityKernel_simple_rejects_removed_input_state():
+    """input_state was removed in 0.4; it must fail through normal signature validation.
+
+    FidelityKernel.simple() still emits its own method-level 0.5 deprecation
+    warning, but no parameter-level warning for the removed ``input_state``.
+    """
+    with warnings.catch_warnings(record=True) as warning_list:
+        warnings.simplefilter("always")
+        with pytest.raises(
+            TypeError, match=r"unexpected keyword argument 'input_state'"
+        ):
+            FidelityKernel.simple(input_size=2, input_state=[1, 1])
+    _assert_only_method_level_FidelityKernel_simple_deprecation(warning_list)
 
 
 class TestLegacyFeatureMapUnitaryPath:

@@ -1,3 +1,5 @@
+import warnings
+
 import perceval as pcvl
 import pytest
 
@@ -32,9 +34,25 @@ def test_init_accepts_measurement_strategy_fock():
     assert layer.computation_space is ComputationSpace.FOCK
 
 
-def test_simple_warns_on_n_params():
-    with pytest.warns(DeprecationWarning, match=r"Parameter 'n_params' is deprecated"):
-        obj = QuantumLayer.simple(input_size=2, n_params=95)
-    assert obj is not None
-    assert obj.circuit.m == 3
-    assert obj.quantum_layer.input_state == pcvl.BasicState([1, 0, 1])
+def test_simple_rejects_removed_n_params():
+    """n_params was removed in 0.4; it must fail through normal signature validation."""
+    with warnings.catch_warnings(record=True) as warning_list:
+        warnings.simplefilter("always")
+        with pytest.raises(TypeError, match=r"unexpected keyword argument 'n_params'"):
+            QuantumLayer.simple(input_size=2, n_params=95)
+    assert not any(
+        issubclass(warning.category, DeprecationWarning) for warning in warning_list
+    )
+
+
+def test_simple_rejects_unknown_kwarg():
+    """Unknown kwargs must still fail through normal Python signature validation."""
+    with warnings.catch_warnings(record=True) as warning_list:
+        warnings.simplefilter("always")
+        with pytest.raises(
+            TypeError, match=r"unexpected keyword argument 'not_a_real_kwarg'"
+        ):
+            QuantumLayer.simple(input_size=2, not_a_real_kwarg=True)
+    assert not any(
+        issubclass(warning.category, DeprecationWarning) for warning in warning_list
+    )
