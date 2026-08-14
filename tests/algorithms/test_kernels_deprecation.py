@@ -1,7 +1,7 @@
 """Deprecation tests for kernel APIs.
 
-Tests in this module verify that deprecated APIs emit the expected
-``DeprecationWarning`` and continue to work correctly until removal.
+Tests in this module verify deprecated warnings, compatibility paths, and
+removed arguments across the kernel APIs.
 
 TODO: In release 0.5.x, remove this module along with the deprecated APIs.
 """

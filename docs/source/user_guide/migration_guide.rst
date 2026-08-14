@@ -35,6 +35,39 @@ To define the ``computation_space`` of a :class:`~merlin.algorithms.layer.Quantu
    # Recommended
    QuantumLayer(..., measurement_strategy=MeasurementStrategy.probs(ComputationSpace.FOCK))
 
+Migrating removed simple-factory arguments
+------------------------------------------
+
+The following arguments were removed from the ``simple`` factory methods in
+MerLin 0.4. Passing them now raises Python's normal ``TypeError`` for an
+unexpected keyword argument:
+
+* ``QuantumLayer.simple``: ``n_params``
+* ``FeatureMap.simple``: ``n_photons`` and ``trainable``
+* ``FidelityKernel.simple``: ``n_photons``, ``trainable``, and ``input_state``
+
+The simple factories now infer their parameter allocation, photon count, and
+input state from ``input_size`` and the generated circuit. For a custom
+architecture, use :class:`~merlin.builder.circuit_builder.CircuitBuilder` and
+pass the resulting builder to :class:`~merlin.algorithms.layer.QuantumLayer`
+or :class:`~merlin.algorithms.kernels.FeatureMap`. For kernels, provide a
+custom ``input_state`` to the :class:`~merlin.algorithms.kernels.FidelityKernel`
+constructor when a specific occupation pattern is required.
+
+For example, replace the removed ``FeatureMap.simple`` arguments:
+
+.. code-block:: python
+
+   # Removed in 0.4
+   # FeatureMap.simple(input_size=2, n_photons=2, trainable=True)
+
+   # Recommended: use the inferred defaults
+   FeatureMap.simple(input_size=2)
+
+The ``n_photons`` and ``input_state`` arguments remain supported on the
+general ``QuantumLayer`` and ``FidelityKernel`` constructors where they are
+part of the explicit circuit/input-state configuration.
+
 Migrating from ``no_bunching`` (deprecated)
 -------------------------------------------
 
